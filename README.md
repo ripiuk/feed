@@ -1,7 +1,7 @@
 # Feed
 
 
-#### Description
+### Description
 
 This project provides some data **Feeds** (food) for its clients.
 
@@ -14,7 +14,7 @@ Client of this API are able to:
 1. see derived metric CPI (cost per install) which is calculated as cpi = spend / installs
 
 
-#### How to run locally
+### How to run locally
 
 Install python, create virtual environment and install all the requirements:
 
@@ -26,7 +26,7 @@ Create `feed/.env` configuration file with custom settings. Example of the `feed
     SECRET_KEY=Some secret key here
     DATABASE_URL=psql://user_name:user_password@localhost:5432/feed
 
-Run the server:
+Run the project:
 
     make run
 
