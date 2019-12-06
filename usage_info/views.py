@@ -1,3 +1,9 @@
-from django.shortcuts import render
+from rest_framework import generics
 
-# Create your views here.
+from .serializers import UsageInfoSerializer
+from .models import UsageInfo
+
+
+class UsageInfoAll(generics.ListAPIView):
+    queryset = UsageInfo.objects.all()
+    serializer_class = UsageInfoSerializer

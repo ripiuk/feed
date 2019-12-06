@@ -30,4 +30,4 @@ Run the project:
 
     make run
 
-It will open your browser on http://127.0.0.1:8000/
+It will open your browser on http://127.0.0.1:8000/usage_info
