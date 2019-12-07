@@ -33,23 +33,26 @@ install-psql:
 
 # ----- Virtualenv -----
 
-venv:
-	@if [ ! -d "venv" ]; then $(PYTHON) -m venv venv ; fi;
+venv_init:
+	if [ ! -e "venv/bin/activate" ]; then $(PYTHON) -m venv venv ; fi;
+	bash -c "source venv/bin/activate && \
+		pip install --upgrade wheel pip setuptools && \
+		pip install --upgrade --requirement requirements.txt"
 
 
 # ----- Update -----
 
-update:
-	@echo "----- Updating requirements -----"
-	@export XXHASH_FORCE_CFFI=1
-	@pip install --upgrade wheel pip
-	@pip install --upgrade --requirement requirements.txt
+update: venv_init
 
+update-dev: venv_init
+	bash -c "source venv/bin/activate && \
+		pip install --upgrade --requirement requirements-dev.txt"
 
 # ----- Setup -----
 
-setup: install venv
-	@bash -c "source venv/bin/activate && $(MAKE) update"
+setup: install venv_init
+
+setup_test: install update-dev
 
 
 # ----- Run -----
@@ -61,5 +64,10 @@ run:
 
 # ----- Tests -----
 
-test: update
+test: update-dev
 	python manage.py test
+	flake8
+
+test-cov: update-dev
+	coverage run --source='.' manage.py test
+	coverage report

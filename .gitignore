@@ -10,3 +10,4 @@ venv/
 
 # project files
 feed/.env
+.coverage

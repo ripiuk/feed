@@ -13,7 +13,7 @@ conn_params = env.db()
 FILE = 'dataset.csv'
 
 INSERT_QUERY = """
-    INSERT INTO usage_info_usageinfo(date, channel, country, os, impressions, 
+    INSERT INTO usage_info_usageinfo(date, channel, country, os, impressions,
         clicks, installs, spend, revenue)
     VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
 """

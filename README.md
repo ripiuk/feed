@@ -43,6 +43,9 @@ Run the tests:
 
     make test
 
+Check coverage:
+
+    make test-cov
 
 ### Usage Examples
 
