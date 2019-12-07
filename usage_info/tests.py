@@ -285,3 +285,46 @@ class UsageInfoGroupBy(BaseViewTest):
             reverse("usage-info"), {"group_by": group_by}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UsageInfoSortBy(BaseViewTest):
+
+    def test_sort_usage_info_by_one_field_asc(self):
+        sort_by = 'date'
+        response = self.client.get(
+            reverse("usage-info"), {"sort_by": sort_by}
+        )
+        expected = UsageInfo.objects.order_by(sort_by)
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_sort_usage_info_by_one_field_desc(self):
+        sort_by = '-date'
+        response = self.client.get(
+            reverse("usage-info"), {"sort_by": sort_by}
+        )
+        expected = UsageInfo.objects.order_by(sort_by)
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_sort_usage_info_by_many_fields(self):
+        sort_by = '-date,clicks'
+        response = self.client.get(
+            reverse("usage-info"), {"sort_by": sort_by}
+        )
+        expected = UsageInfo.objects.order_by(*sort_by.split(','))
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_sort_usage_info_by_not_existing_field(self):
+        sort_by = 'not existing field'
+        response = self.client.get(
+            reverse("usage-info"), {"sort_by": sort_by}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

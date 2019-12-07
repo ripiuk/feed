@@ -1,8 +1,7 @@
 import trafaret as t
-from django.db.models import Sum
 from django.http import QueryDict
 from rest_framework import generics
-from django.db.models.query import QuerySet
+from django.db.models import Sum, query
 from rest_framework.exceptions import ParseError
 
 from .models import UsageInfo
@@ -12,13 +11,14 @@ from .validator import ValidationError, date_validator, comma_separated_str
 
 class UsageInfoView(generics.ListAPIView):
     """
-    Available parameters:
+    Available url parameters:
         date_from - get records from the specified date. e.g 2017-06-01
         date_to - get records till the specified date. e.g 2017-08-12
         channels - filter records by chosen channels. e.g 'facebook' or several 'facebook,adcolony,...'
         countries - filter records by chosen countries. e.g 'US' or several 'US,CA,...'
         os - filter records by chosen operating system. e.g 'android' or several 'android,ios,...'
         group_by - group by one ore several fields. e.g. 'date' or 'channel,country,os,...'
+        sort_by - group by one ore several fields. e.g. 'channel' or 'installs,-revenue,os,...' ('-' means descending)
     """
     queryset = UsageInfo.objects.all()
     serializer_class = UsageInfoSerializer
@@ -33,6 +33,11 @@ class UsageInfoView(generics.ListAPIView):
         :raise ParseError: if query parameter is not valid
         """
         group_by_allowed_fields = {'date', 'channel', 'country', 'os'}
+        sort_by_allowed_fields = {
+            'date', 'channel', 'country', 'os', 'impressions',
+            'clicks', 'installs', 'spend', 'revenue'}
+        sort_by_allowed_fields = sort_by_allowed_fields | {f'-{field}' for field in sort_by_allowed_fields}
+
         schema = t.Dict({
             t.Key('date_from', optional=True): date_validator,
             t.Key('date_to', optional=True): date_validator,
@@ -40,6 +45,7 @@ class UsageInfoView(generics.ListAPIView):
             t.Key('countries', optional=True): comma_separated_str(),
             t.Key('os', optional=True): comma_separated_str(),
             t.Key('group_by', optional=True): comma_separated_str(group_by_allowed_fields),
+            t.Key('sort_by', optional=True): comma_separated_str(sort_by_allowed_fields),
         }, allow_extra='*')
 
         try:
@@ -47,7 +53,7 @@ class UsageInfoView(generics.ListAPIView):
         except (ValidationError, t.DataError) as err:
             raise ParseError(err)
 
-    def get_queryset(self) -> QuerySet:
+    def get_queryset(self) -> query.QuerySet:
         self._validate_query_params(self.request.query_params)
 
         filter_params = {
@@ -68,6 +74,10 @@ class UsageInfoView(generics.ListAPIView):
                     spend=Sum('spend'),
                     revenue=Sum('revenue')
                 )
+
+            if 'sort_by' in self.request.query_params:
+                sort_by = map(str.strip, self.request.query_params['sort_by'].split(','))
+                self.queryset = self.queryset.order_by(*sort_by)
 
             params_to_filter = (
                 filter_params[param](val)

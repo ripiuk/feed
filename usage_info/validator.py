@@ -20,10 +20,10 @@ def date_validator(date: str) -> str:
     return date
 
 
-def comma_separated_str(allowed: typ.Optional[set] = None):
+def comma_separated_str(allowed_values: typ.Optional[set] = None):
     """Decorator to specify allowed values
 
-    :param allowed: allowed values (optional)
+    :param allowed_values: allowed values (optional)
     :return: inner function
     """
     def inner(raw_str: str) -> str:
@@ -38,8 +38,8 @@ def comma_separated_str(allowed: typ.Optional[set] = None):
                 raise ValidationError(
                     f'Got not correct comma separated format'
                     f': {raw_str!r} (element {str_!r})')
-            if allowed and str_ not in allowed:
+            if allowed_values and str_ not in allowed_values:
                 raise ValidationError(
-                    f'The {str_!r} field is not allowed. Please choose from {allowed!r}')
+                    f'The {str_!r} field is not allowed. Please choose from {allowed_values!r}')
         return raw_str
     return inner
