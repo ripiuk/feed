@@ -20,6 +20,10 @@ Install python, create virtual environment and install all the requirements:
 
     make setup
 
+Install PostgreSQL:
+
+    make install-psql
+
 Create `feed/.env` configuration file with custom settings. Example of the `feed/.env` file:
 
     DEBUG=True
@@ -31,3 +35,10 @@ Run the project:
     make run
 
 It will open your browser on http://127.0.0.1:8000/usage_info
+
+
+### How to run tests
+
+Run the tests:
+
+    make test

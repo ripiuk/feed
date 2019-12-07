@@ -2,7 +2,7 @@ from django.db import models
 
 
 class UsageInfo(models.Model):
-    date = models.DateField(auto_now_add=True, blank=False)
+    date = models.DateField(blank=False)
     channel = models.CharField(max_length=256, blank=False)
     country = models.CharField(max_length=3, blank=False)
     os = models.CharField(max_length=60, blank=False)

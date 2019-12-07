@@ -1,6 +1,9 @@
 PYTHON = python3.7
 
 
+PSQL_USER = oleksandr
+PSQL_PASSWORD = oleksandr
+PSQL_DB = feed
 # ========== Linux (Debian) ==========
 
 
@@ -18,6 +21,15 @@ install:
 		libssl-dev libffi-dev openssl \
 		redis-server
 
+install-psql:
+	sudo apt-get -q update \
+	&& apt-get install -y postgresql postgresql-contrib postgresql-server-dev-10
+	sudo -u postgres psql -c "CREATE USER $(PSQL_USER) with password '$(PSQL_PASSWORD)'"
+	sudo -u postgres psql -c "ALTER ROLE $(PSQL_USER) SET client_encoding TO 'utf8'"
+	sudo -u postgres psql -c "ALTER ROLE $(PSQL_USER) SET default_transaction_isolation TO 'read committed'"
+	sudo -u postgres psql -c "ALTER ROLE $(PSQL_USER) SET timezone TO 'UTC'"
+	sudo -u postgres psql -c "CREATE DATABASE $(PSQL_DB) OWNER $(PSQL_USER)"
+	sudo -u postgres psql -c "ALTER USER $(PSQL_USER) CREATEDB"
 
 # ----- Virtualenv -----
 
@@ -45,3 +57,9 @@ setup: install venv
 run:
 	xdg-open "http://127.0.0.1:8000/usage_info"
 	python manage.py runserver
+
+
+# ----- Tests -----
+
+test: update
+	python manage.py test
