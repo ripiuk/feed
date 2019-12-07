@@ -1,37 +1,53 @@
+import typing as typ
+
 from rest_framework import serializers
 
 from .models import UsageInfo
 
 
-class UsageInfoSerializer(serializers.HyperlinkedModelSerializer):
+class CPIFieldModelSerializer(serializers.ModelSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super(CPIFieldModelSerializer, self).__init__(*args, **kwargs)
+        cpi = self.context['request'].query_params.get('cpi') if self.context else None
+        if not cpi or (cpi and cpi != '1'):
+            self.fields.pop('cpi')
+
+
+class UsageInfoSerializer(CPIFieldModelSerializer, serializers.HyperlinkedModelSerializer):
     date = serializers.SerializerMethodField(required=False, allow_null=True)
     channel = serializers.SerializerMethodField(required=False, allow_null=True)
     country = serializers.SerializerMethodField(required=False, allow_null=True)
     os = serializers.SerializerMethodField(required=False, allow_null=True)
+    cpi = serializers.SerializerMethodField(required=False, allow_null=True)
 
     class Meta:
         model = UsageInfo
         fields = (
             'date', 'channel', 'country', 'os', 'impressions',
-            'clicks', 'installs', 'spend', 'revenue'
+            'clicks', 'installs', 'spend', 'revenue', 'cpi',
         )
 
     @staticmethod
-    def get_date(obj):
-        return obj.date if hasattr(obj, 'date') else \
-            obj.get('date') if isinstance(obj, dict) else None
+    def _get_from_model(obj: typ.Union[dict, UsageInfo], field: str) -> typ.Any:
+        return getattr(obj, field) if hasattr(obj, field) else \
+            obj.get(field) if isinstance(obj, dict) else None
 
-    @staticmethod
-    def get_channel(obj):
-        return obj.channel if hasattr(obj, 'channel') else \
-            obj.get('channel') if isinstance(obj, dict) else None
+    def get_date(self, obj: typ.Union[dict, UsageInfo]) -> typ.Any:
+        return self._get_from_model(obj, 'date')
 
-    @staticmethod
-    def get_country(obj):
-        return obj.country if hasattr(obj, 'country') else \
-            obj.get('country') if isinstance(obj, dict) else None
+    def get_channel(self, obj: typ.Union[dict, UsageInfo]) -> typ.Any:
+        return self._get_from_model(obj, 'channel')
 
-    @staticmethod
-    def get_os(obj):
-        return obj.os if hasattr(obj, 'os') else \
-            obj.get('os') if isinstance(obj, dict) else None
+    def get_country(self, obj: typ.Union[dict, UsageInfo]) -> typ.Any:
+        return self._get_from_model(obj, 'country')
+
+    def get_os(self, obj: typ.Union[dict, UsageInfo]) -> typ.Any:
+        return self._get_from_model(obj, 'os')
+
+    def get_cpi(self, obj: typ.Union[dict, UsageInfo]) -> typ.Optional[float]:
+        spend = self._get_from_model(obj, 'spend')
+        installs = self._get_from_model(obj, 'installs')
+        if spend and installs:
+            return spend / installs
+        return None

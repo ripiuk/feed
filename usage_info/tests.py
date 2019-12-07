@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from django.urls import reverse
 from django.db.models import Sum
 from rest_framework.views import status
@@ -328,3 +330,30 @@ class UsageInfoSortBy(BaseViewTest):
             reverse("usage-info"), {"sort_by": sort_by}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UsageInfoCPI(BaseViewTest):
+
+    def test_usage_info_cpi_off(self):
+        cpi = '0'
+        response = self.client.get(
+            reverse("usage-info"), {"cpi": cpi}
+        )
+        expected = UsageInfo.objects.all()
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_usage_info_cpi_on(self):
+        cpi = '1'
+        response = self.client.get(
+            reverse("usage-info"), {"cpi": cpi}
+        )
+        expected = UsageInfo.objects.all()
+        Request = namedtuple('Request', ['query_params'])
+        fake_request = Request(query_params={'cpi': cpi})
+        serialized = UsageInfoSerializer(expected, many=True, context={'request': fake_request})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
