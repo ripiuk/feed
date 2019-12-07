@@ -193,3 +193,42 @@ class GetUsageInfoFilterCountries(BaseViewTest):
             reverse("usage-info"), {"countries": countries}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class GetUsageInfoFilterOS(BaseViewTest):
+
+    def test_get_usage_info_by_one_os(self):
+        os = "ios"
+        response = self.client.get(
+            reverse("usage-info"), {"os": os}
+        )
+        expected = UsageInfo.objects.filter(os__in=[os])
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_many_os(self):
+        os = "ios,android"
+        response = self.client.get(
+            reverse("usage-info"), {"os": os}
+        )
+        expected = UsageInfo.objects.filter(os__in=os.split(','))
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_empty_os(self):
+        os = "ios,"
+        response = self.client.get(
+            reverse("usage-info"), {"os": os}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_usage_info_os_as_digit(self):
+        os = "ios,12"
+        response = self.client.get(
+            reverse("usage-info"), {"os": os}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

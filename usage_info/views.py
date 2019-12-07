@@ -14,8 +14,9 @@ class UsageInfoAll(generics.ListAPIView):
     Available parameters:
         date_from - get records from the specified date. e.g 2017-06-01
         date_to - get records till the specified date. e.g 2017-08-12
-        channels - get records with specific channels. e.g 'facebook' or several 'facebook,adcolony'
-        countries - get records with specific countries. e.g 'US' or several 'US,CA'
+        channels - filter records by chosen channels. e.g 'facebook' or several 'facebook,adcolony,...'
+        countries - filter records by chosen countries. e.g 'US' or several 'US,CA,...'
+        os - filter records by chosen operating system. e.g 'android' or several 'android,ios,...'
     """
     queryset = UsageInfo.objects.all()
     serializer_class = UsageInfoSerializer
@@ -34,6 +35,7 @@ class UsageInfoAll(generics.ListAPIView):
             t.Key('date_to', optional=True): date_validator,
             t.Key('channels', optional=True): comma_separated_str,
             t.Key('countries', optional=True): comma_separated_str,
+            t.Key('os', optional=True): comma_separated_str,
         }, allow_extra='*')
 
         try:
@@ -48,7 +50,8 @@ class UsageInfoAll(generics.ListAPIView):
             'date_from': lambda date: ('date__gte', date),
             'date_to': lambda date: ('date__lte', date),
             'channels': lambda chs: ('channel__in', map(str.strip, chs.split(','))),
-            'countries': lambda ctr: ('country__in', map(str.strip, ctr.split(',')))
+            'countries': lambda ctr: ('country__in', map(str.strip, ctr.split(','))),
+            'os': lambda os: ('os__in', map(str.strip, os.split(','))),
         }
 
         if self.request.query_params:
