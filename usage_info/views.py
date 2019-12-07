@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 
 from .models import UsageInfo
 from .serializers import UsageInfoSerializer
-from .validator import ValidationError, date_validator
+from .validator import ValidationError, date_validator, comma_separated_str
 
 
 class UsageInfoAll(generics.ListAPIView):
@@ -14,6 +14,7 @@ class UsageInfoAll(generics.ListAPIView):
     Available parameters:
         date_from - get records from the specified date. e.g 2017-06-01
         date_to - get records till the specified date. e.g 2017-08-12
+        channels - get records with specific channels. e.g 'facebook' or several 'facebook,adcolony'
     """
     queryset = UsageInfo.objects.all()
     serializer_class = UsageInfoSerializer
@@ -30,6 +31,7 @@ class UsageInfoAll(generics.ListAPIView):
         schema = t.Dict({
             t.Key('date_from', optional=True): date_validator,
             t.Key('date_to', optional=True): date_validator,
+            t.Key('channels', optional=True): comma_separated_str,
         }, allow_extra='*')
 
         try:
@@ -40,11 +42,18 @@ class UsageInfoAll(generics.ListAPIView):
     def get_queryset(self) -> QuerySet:
         self._validate_query_params(self.request.query_params)
 
-        date_from = self.request.query_params.get('date_from', None)
-        date_to = self.request.query_params.get('date_to', None)
-        # TODO: Move queryset creation from here
-        if date_from:
-            self.queryset = self.queryset.filter(date__gte=date_from)
-        if date_to:
-            self.queryset = self.queryset.filter(date__lte=date_to)
+        filter_params = {
+            'date_from': lambda date: ('date__gte', date),
+            'date_to': lambda date: ('date__lte', date),
+            'channels': lambda chs: ('channel__in', map(str.strip, chs.split(',')) if chs else []),
+        }
+
+        if self.request.query_params:
+            params_to_filter = (
+                filter_params[param](val)
+                for param, val in self.request.query_params.items()
+                if param in filter_params
+            )
+            self.queryset = self.queryset.filter(**dict(params_to_filter))
+
         return self.queryset

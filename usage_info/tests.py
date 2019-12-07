@@ -60,6 +60,7 @@ class GetAllUsageInfo(BaseViewTest):
         )
         expected = UsageInfo.objects.all()
         serialized = UsageInfoSerializer(expected, many=True)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], serialized.data)
 
@@ -73,6 +74,7 @@ class GetUsageInfoFilterDate(BaseViewTest):
         )
         expected = UsageInfo.objects.filter(date__gte=date_from)
         serialized = UsageInfoSerializer(expected, many=True)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], serialized.data)
 
@@ -90,6 +92,7 @@ class GetUsageInfoFilterDate(BaseViewTest):
         )
         expected = UsageInfo.objects.filter(date__lte=date_to)
         serialized = UsageInfoSerializer(expected, many=True)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], serialized.data)
 
@@ -109,5 +112,45 @@ class GetUsageInfoFilterDate(BaseViewTest):
         expected = UsageInfo.objects.filter(
             date__gte=date_from).filter(date__lte=date_to)
         serialized = UsageInfoSerializer(expected, many=True)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], serialized.data)
+
+
+class GetUsageInfoFilterChannels(BaseViewTest):
+
+    def test_get_usage_info_by_one_channel(self):
+        channel = "facebook"
+        response = self.client.get(
+            reverse("usage-info"), {"channels": channel}
+        )
+        expected = UsageInfo.objects.filter(channel__in=[channel])
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_many_channels(self):
+        channels = "adcolony,facebook"
+        response = self.client.get(
+            reverse("usage-info"), {"channels": channels}
+        )
+        expected = UsageInfo.objects.filter(channel__in=channels.split(','))
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_empty_channel(self):
+        channels = "adcolony,"
+        response = self.client.get(
+            reverse("usage-info"), {"channels": channels}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_usage_info_channel_as_digit(self):
+        channels = "adcolony,12"
+        response = self.client.get(
+            reverse("usage-info"), {"channels": channels}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
