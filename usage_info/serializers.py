@@ -5,21 +5,12 @@ from rest_framework import serializers
 from .models import UsageInfo
 
 
-class CPIFieldModelSerializer(serializers.ModelSerializer):
-
-    def __init__(self, *args, **kwargs):
-        super(CPIFieldModelSerializer, self).__init__(*args, **kwargs)
-        cpi = self.context['request'].query_params.get('cpi') if self.context else None
-        if not cpi or (cpi and cpi != '1'):
-            self.fields.pop('cpi')
-
-
-class UsageInfoSerializer(CPIFieldModelSerializer, serializers.HyperlinkedModelSerializer):
+class UsageInfoSerializer(serializers.HyperlinkedModelSerializer):
     date = serializers.SerializerMethodField(required=False, allow_null=True)
     channel = serializers.SerializerMethodField(required=False, allow_null=True)
     country = serializers.SerializerMethodField(required=False, allow_null=True)
     os = serializers.SerializerMethodField(required=False, allow_null=True)
-    cpi = serializers.SerializerMethodField(required=False, allow_null=True)
+    cpi = serializers.FloatField(required=False)
 
     class Meta:
         model = UsageInfo
@@ -44,10 +35,3 @@ class UsageInfoSerializer(CPIFieldModelSerializer, serializers.HyperlinkedModelS
 
     def get_os(self, obj: typ.Union[dict, UsageInfo]) -> typ.Any:
         return self._get_from_model(obj, 'os')
-
-    def get_cpi(self, obj: typ.Union[dict, UsageInfo]) -> typ.Optional[float]:
-        spend = self._get_from_model(obj, 'spend')
-        installs = self._get_from_model(obj, 'installs')
-        if spend and installs:
-            return spend / installs
-        return None

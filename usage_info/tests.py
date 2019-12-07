@@ -1,9 +1,7 @@
-from collections import namedtuple
-
 from django.urls import reverse
-from django.db.models import Sum
 from rest_framework.views import status
 from rest_framework.test import APITestCase, APIClient
+from django.db.models import Sum, F, FloatField, ExpressionWrapper
 
 from .models import UsageInfo
 from .serializers import UsageInfoSerializer
@@ -350,10 +348,18 @@ class UsageInfoCPI(BaseViewTest):
         response = self.client.get(
             reverse("usage-info"), {"cpi": cpi}
         )
-        expected = UsageInfo.objects.all()
-        Request = namedtuple('Request', ['query_params'])
-        fake_request = Request(query_params={'cpi': cpi})
-        serialized = UsageInfoSerializer(expected, many=True, context={'request': fake_request})
+        expected = UsageInfo.objects.annotate(
+            cpi=ExpressionWrapper(
+                F('spend') / F('installs'),
+                output_field=FloatField()))
+        serialized = UsageInfoSerializer(expected, many=True)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'], serialized.data)
+
+    def test_sort_usage_info_with_cpi_off(self):
+        cpi = '0'
+        response = self.client.get(
+            reverse("usage-info"), {"cpi": cpi, "sort_by": 'cpi'}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

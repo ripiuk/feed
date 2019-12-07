@@ -1,8 +1,8 @@
 import trafaret as t
 from django.http import QueryDict
 from rest_framework import generics
-from django.db.models import Sum, query
 from rest_framework.exceptions import ParseError
+from django.db.models import Sum, query, F, FloatField, ExpressionWrapper
 
 from .models import UsageInfo
 from .serializers import UsageInfoSerializer
@@ -19,8 +19,8 @@ class UsageInfoView(generics.ListAPIView):
         os - filter records by chosen operating system. e.g 'android' or several 'android,ios,...'
         group_by - group by one ore several fields. e.g. 'date' or 'channel,country,os,...'
         sort_by - group by one ore several fields. e.g. 'channel' or 'installs,-revenue,os,...' ('-' means descending)
+        cpi - CPI metric (cost per install). You can include it by adding 'cpi=1'
     """
-    queryset = UsageInfo.objects.all()
     serializer_class = UsageInfoSerializer
 
     @staticmethod
@@ -35,7 +35,7 @@ class UsageInfoView(generics.ListAPIView):
         group_by_allowed_fields = {'date', 'channel', 'country', 'os'}
         sort_by_allowed_fields = {
             'date', 'channel', 'country', 'os', 'impressions',
-            'clicks', 'installs', 'spend', 'revenue'}
+            'clicks', 'installs', 'spend', 'revenue', 'cpi'}
         sort_by_allowed_fields = sort_by_allowed_fields | {f'-{field}' for field in sort_by_allowed_fields}
 
         schema = t.Dict({
@@ -54,6 +54,8 @@ class UsageInfoView(generics.ListAPIView):
             raise ParseError(err)
 
     def get_queryset(self) -> query.QuerySet:
+        queryset = UsageInfo.objects.all()
+
         self._validate_query_params(self.request.query_params)
 
         filter_params = {
@@ -67,23 +69,32 @@ class UsageInfoView(generics.ListAPIView):
         if self.request.query_params:
             if 'group_by' in self.request.query_params:
                 group_by = map(str.strip, self.request.query_params['group_by'].split(','))
-                self.queryset = UsageInfo.objects.values(*group_by).annotate(
+                queryset = UsageInfo.objects.values(*group_by).annotate(
                     impressions=Sum('impressions'),
                     clicks=Sum('clicks'),
-                    installs=Sum('installs'),
-                    spend=Sum('spend'),
+                    installs=Sum('installs', output_field=FloatField()),
+                    spend=Sum('spend', output_field=FloatField()),
                     revenue=Sum('revenue')
                 )
 
+            cpi = self.request.query_params.get('cpi')
+            if cpi and cpi == '1':
+                queryset = queryset.annotate(
+                    cpi=ExpressionWrapper(
+                        F('spend') / F('installs'),
+                        output_field=FloatField()))
+
             if 'sort_by' in self.request.query_params:
-                sort_by = map(str.strip, self.request.query_params['sort_by'].split(','))
-                self.queryset = self.queryset.order_by(*sort_by)
+                sort_by = list(map(str.strip, self.request.query_params['sort_by'].split(',')))
+                if any(cpi_val in sort_by for cpi_val in ('cpi', '-cpi')) and cpi != '1':
+                    raise ParseError('Can not sort by CPI. Please turn CPI on by adding cpi=1')
+                queryset = queryset.order_by(*sort_by)
 
             params_to_filter = (
                 filter_params[param](val)
                 for param, val in self.request.query_params.items()
                 if param in filter_params
             )
-            self.queryset = self.queryset.filter(**dict(params_to_filter))
+            queryset = queryset.filter(**dict(params_to_filter))
 
-        return self.queryset
+        return queryset
