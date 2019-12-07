@@ -154,3 +154,42 @@ class GetUsageInfoFilterChannels(BaseViewTest):
             reverse("usage-info"), {"channels": channels}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class GetUsageInfoFilterCountries(BaseViewTest):
+
+    def test_get_usage_info_by_one_country(self):
+        country = "US"
+        response = self.client.get(
+            reverse("usage-info"), {"countries": country}
+        )
+        expected = UsageInfo.objects.filter(country__in=[country])
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_many_countries(self):
+        countries = "US,FR"
+        response = self.client.get(
+            reverse("usage-info"), {"countries": countries}
+        )
+        expected = UsageInfo.objects.filter(country__in=countries.split(','))
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_get_usage_info_empty_country(self):
+        countries = "US,"
+        response = self.client.get(
+            reverse("usage-info"), {"countries": countries}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_usage_info_country_as_digit(self):
+        countries = "US,12"
+        response = self.client.get(
+            reverse("usage-info"), {"countries": countries}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
