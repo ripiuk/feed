@@ -1,4 +1,5 @@
 import trafaret as t
+from django.db.models import Sum
 from django.http import QueryDict
 from rest_framework import generics
 from django.db.models.query import QuerySet
@@ -9,7 +10,7 @@ from .serializers import UsageInfoSerializer
 from .validator import ValidationError, date_validator, comma_separated_str
 
 
-class UsageInfoAll(generics.ListAPIView):
+class UsageInfoView(generics.ListAPIView):
     """
     Available parameters:
         date_from - get records from the specified date. e.g 2017-06-01
@@ -17,6 +18,7 @@ class UsageInfoAll(generics.ListAPIView):
         channels - filter records by chosen channels. e.g 'facebook' or several 'facebook,adcolony,...'
         countries - filter records by chosen countries. e.g 'US' or several 'US,CA,...'
         os - filter records by chosen operating system. e.g 'android' or several 'android,ios,...'
+        group_by - group by one ore several fields. e.g. 'date' or 'channel,country,os,...'
     """
     queryset = UsageInfo.objects.all()
     serializer_class = UsageInfoSerializer
@@ -30,12 +32,14 @@ class UsageInfoAll(generics.ListAPIView):
         :return: None
         :raise ParseError: if query parameter is not valid
         """
+        group_by_allowed_fields = {'date', 'channel', 'country', 'os'}
         schema = t.Dict({
             t.Key('date_from', optional=True): date_validator,
             t.Key('date_to', optional=True): date_validator,
-            t.Key('channels', optional=True): comma_separated_str,
-            t.Key('countries', optional=True): comma_separated_str,
-            t.Key('os', optional=True): comma_separated_str,
+            t.Key('channels', optional=True): comma_separated_str(),
+            t.Key('countries', optional=True): comma_separated_str(),
+            t.Key('os', optional=True): comma_separated_str(),
+            t.Key('group_by', optional=True): comma_separated_str(group_by_allowed_fields),
         }, allow_extra='*')
 
         try:
@@ -55,6 +59,16 @@ class UsageInfoAll(generics.ListAPIView):
         }
 
         if self.request.query_params:
+            if 'group_by' in self.request.query_params:
+                group_by = map(str.strip, self.request.query_params['group_by'].split(','))
+                self.queryset = UsageInfo.objects.values(*group_by).annotate(
+                    impressions=Sum('impressions'),
+                    clicks=Sum('clicks'),
+                    installs=Sum('installs'),
+                    spend=Sum('spend'),
+                    revenue=Sum('revenue')
+                )
+
             params_to_filter = (
                 filter_params[param](val)
                 for param, val in self.request.query_params.items()

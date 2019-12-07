@@ -1,4 +1,5 @@
 import datetime
+import typing as typ
 
 
 class ValidationError(Exception):
@@ -19,16 +20,26 @@ def date_validator(date: str) -> str:
     return date
 
 
-def comma_separated_str(raw_str: str) -> str:
-    """Check if the comma separated string format is correct
+def comma_separated_str(allowed: typ.Optional[set] = None):
+    """Decorator to specify allowed values
 
-    :param raw_str: comma separated string. e.g. adcolony,vungle
-    :return: raw_str
-    :raise ValidationError: if the comma separated string format is not correct
+    :param allowed: allowed values (optional)
+    :return: inner function
     """
-    for str_ in raw_str.split(','):
-        if not str_ or str_.isdigit():
-            raise ValidationError(
-                f'Got not correct comma separated format'
-                f': {raw_str!r} (element {str_!r})')
-    return raw_str
+    def inner(raw_str: str) -> str:
+        """Check if the comma separated string format is correct
+
+        :param raw_str: comma separated string. e.g. adcolony,vungle
+        :return: raw_str
+        :raise ValidationError: if the comma separated string format is not correct
+        """
+        for str_ in raw_str.split(','):
+            if not str_ or str_.isdigit():
+                raise ValidationError(
+                    f'Got not correct comma separated format'
+                    f': {raw_str!r} (element {str_!r})')
+            if allowed and str_ not in allowed:
+                raise ValidationError(
+                    f'The {str_!r} field is not allowed. Please choose from {allowed!r}')
+        return raw_str
+    return inner

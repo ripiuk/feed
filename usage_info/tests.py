@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.db.models import Sum
 from rest_framework.views import status
 from rest_framework.test import APITestCase, APIClient
 
@@ -230,5 +231,57 @@ class GetUsageInfoFilterOS(BaseViewTest):
         os = "ios,12"
         response = self.client.get(
             reverse("usage-info"), {"os": os}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UsageInfoGroupBy(BaseViewTest):
+
+    def test_group_usage_info_by_one_field(self):
+        group_by = 'date'
+        response = self.client.get(
+            reverse("usage-info"), {"group_by": group_by}
+        )
+        expected = UsageInfo.objects.values(group_by).annotate(
+            impressions=Sum('impressions'),
+            clicks=Sum('clicks'),
+            installs=Sum('installs'),
+            spend=Sum('spend'),
+            revenue=Sum('revenue')
+        )
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_group_usage_info_by_many_fields(self):
+        group_by = 'date,channel,os'
+        response = self.client.get(
+            reverse("usage-info"), {"group_by": group_by}
+        )
+        group_by = group_by.split(',')
+        expected = UsageInfo.objects.values(*group_by).annotate(
+            impressions=Sum('impressions'),
+            clicks=Sum('clicks'),
+            installs=Sum('installs'),
+            spend=Sum('spend'),
+            revenue=Sum('revenue')
+        )
+        serialized = UsageInfoSerializer(expected, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], serialized.data)
+
+    def test_group_usage_info_by_not_allowed_field(self):
+        group_by = 'clicks'
+        response = self.client.get(
+            reverse("usage-info"), {"group_by": group_by}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_group_usage_info_by_not_existing_field(self):
+        group_by = 'not existing field'
+        response = self.client.get(
+            reverse("usage-info"), {"group_by": group_by}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
