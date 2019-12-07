@@ -3,6 +3,8 @@
 
 ### Description
 
+The demo is available here: https://feed-usage-info.herokuapp.com/usage_info
+
 This project provides some data **Feeds** (food) for its clients.
 
 Expose a dataset through a single generic HTTP API endpoint, which is capable of filtering, grouping and sorting.
@@ -50,7 +52,8 @@ Check coverage:
 ### Usage Examples
 
 1. Show the number of impressions and clicks that occurred before the 1st of June 2017, 
-broken down by channel and country, sorted by clicks in descending order
+broken down by channel and country, sorted by clicks in descending order. 
+(click [here](https://feed-usage-info.herokuapp.com/usage_info?date_to=2017-06-01&group_by=channel,country&sort_by=-clicks) for demo)
 
         $ curl "http://127.0.0.1:8000/usage_info?date_to=2017-06-01&group_by=channel,country&sort_by=-clicks" | python3.7 -m json.tool
         {
@@ -106,6 +109,7 @@ broken down by channel and country, sorted by clicks in descending order
 
 1. Show the number of installs that occurred in May of 2017 on iOS, 
 broken down by date, sorted by date in ascending order.
+(click [here](https://feed-usage-info.herokuapp.com/usage_info?date_from=2017-05-01&date_to=2017-05-31&os=ios&group_by=date&sort_by=date) for demo)
 
         $ curl "http://127.0.0.1:8000/usage_info?date_from=2017-05-01&date_to=2017-05-31&os=ios&group_by=date&sort_by=date" | python3.7 -m json.tool
         {
@@ -161,6 +165,7 @@ broken down by date, sorted by date in ascending order.
 
 1. Show revenue, earned on June 1, 2017 in US, broken down by operating system 
 and sorted by revenue in descending order.
+(click [here](https://feed-usage-info.herokuapp.com/usage_info?date_from=2017-06-01&date_to=2017-06-01&countries=US&group_by=os&sort_by=-revenue) for demo)
 
         $ curl "http://127.0.0.1:8000/usage_info?date_from=2017-06-01&date_to=2017-06-01&countries=US&group_by=os&sort_by=-revenue" | python3.7 -m json.tool
         {
@@ -194,6 +199,7 @@ and sorted by revenue in descending order.
         }
 
 1. Show CPI and spend for Canada (CA) broken down by channel ordered by CPI in descending order.
+(click [here](https://feed-usage-info.herokuapp.com/usage_info?cpi=1&countries=CA&group_by=channel&sort_by=-cpi) for demo)
 
         $ curl "http://127.0.0.1:8000/usage_info?cpi=1&countries=CA&group_by=channel&sort_by=-cpi" | python3.7 -m json.tool
         {

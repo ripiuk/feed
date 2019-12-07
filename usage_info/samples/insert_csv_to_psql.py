@@ -10,7 +10,7 @@ env = environ.Env()
 environ.Env.read_env(str(Path(__file__).parents[2] / 'feed' / '.env'))
 conn_params = env.db()
 
-FILE = 'dataset.csv'
+FILE = 'usage_info/samples/dataset.csv'
 
 INSERT_QUERY = """
     INSERT INTO usage_info_usageinfo(date, channel, country, os, impressions,
